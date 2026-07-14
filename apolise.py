@@ -22,14 +22,14 @@ from pyrogram import Client as PyClient
 # ==========================================
 load_dotenv()
 
-print("DEBUG BOT_TOKEN:", os.environ.get('BOT_TOKEN')[:10] if os.environ.get('BOT_TOKEN') else "KOSONG")
+print("DEBUG BOT_TOKEN_2:", os.environ.get('BOT_TOKEN_2')[:10] if os.environ.get('BOT_TOKEN_2') else "KOSONG")
 print("DEBUG API_ID:", os.environ.get('API_ID'))
 print("DEBUG STRING_SESSION:", os.environ.get('STRING_SESSION')[:10] if os.environ.get('STRING_SESSION') else "KOSONG")
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
+BOT_TOKEN_2 = os.environ.get('BOT_TOKEN_2')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
@@ -1243,11 +1243,11 @@ async def post_shutdown(application: Application):
         except: pass
 
 def main():
-    if not BOT_TOKEN: return logger.error("BOT_TOKEN tidak ditemukan!")
+    if not BOT_TOKEN_2: return logger.error("BOT_TOKEN_2 tidak ditemukan!")
     
     application = (
         Application.builder()
-        .token(BOT_TOKEN)
+        .token(BOT_TOKEN_2)
         .concurrent_updates(True)
         .connect_timeout(30.0) 
         .read_timeout(30.0)    
