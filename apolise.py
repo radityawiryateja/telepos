@@ -747,13 +747,18 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_user_id = update.effective_user.id
         if not await check_forcesub(update, context): return
 
-    res = await db(lambda: supabase.table("loyalty_stats").select("*").eq("user_id", target_user_id).execute())
-    stats = res.data[0] if res.data else {"teleprem_spent": 0, "stars_spent": 0, "profneeds_spent": 0}
+    # Tarik data loyalty
+    res_stats = await db(lambda: supabase.table("loyalty_stats").select("*").eq("user_id", target_user_id).execute())
+    stats = res_stats.data[0] if res_stats.data else {"teleprem_spent": 0, "stars_spent": 0, "profneeds_spent": 0}
     
     teleprem = stats.get("teleprem_spent", 0)
     stars = stats.get("stars_spent", 0)
     profneeds = stats.get("profneeds_spent", 0)
     total_all = teleprem + stars + profneeds
+
+    # Tarik data voucher yang HANYA berstatus 'active'
+    res_vouchers = await db(lambda: supabase.table("vouchers").select("kode, diskon").eq("user_id", target_user_id).eq("status", "active").execute())
+    active_vouchers = res_vouchers.data or []
 
     header = f"USER <code>{target_user_id}</code>" if is_admin_group else "KAMU"
     
@@ -766,6 +771,13 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━━━━\n"
         f"🏆 <b>TOTAL KESELURUHAN: Rp{total_all:,}</b>"
     )
+
+    # Tambahkan list voucher ke pesan jika user punya voucher aktif
+    if active_vouchers:
+        teks += "\n\n🎟 <b>VOUCHER AKTIF KAMU:</b>\n"
+        for v in active_vouchers:
+            teks += f" ├ <code>{v['kode']}</code> (Diskon Rp{v['diskon']:,})\n"
+        teks += " └ <i>Kasih tau kode ini ke Admin pas mau bayar jajan ya!</i>"
     
     await update.message.reply_text(teks, parse_mode="HTML")
     
@@ -1181,19 +1193,16 @@ async def cmd_minspent(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # FITUR REFERAL (TELEPREM)
 # ==========================================
 async def cmd_referal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Menampilkan profil referal untuk buyer"""
+    """Menampilkan profil referal untuk buyer dengan bahasa yang lebih santai"""
     if not await check_forcesub(update, context): return
     
-    # Jika admin me-reply pesan user di grup, tampilkan profil referal user tersebut
     if update.effective_chat.id == ADMIN_GROUP_ID and update.message.reply_to_message:
         user_id = await get_target_id(update.message.reply_to_message)
         if not user_id: return
     else:
-        # Jika di private chat
         if update.effective_chat.type != 'private': return
         user_id = update.effective_user.id
 
-    # Ambil data referal dari database
     res = await db(lambda: supabase.table("loyalty_stats").select("referral_count, referral_reward_total").eq("user_id", user_id).execute())
     
     ref_count = 0
@@ -1203,24 +1212,25 @@ async def cmd_referal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref_reward = res.data[0].get("referral_reward_total") or 0
 
     teks = (
-        f"🤝 <b>PROFIL REFERAL KAMU</b>\n"
+        f"✨ <b>PROFIL REFERAL KAMU</b> ✨\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 <b>ID Referal Kamu:</b> <code>{user_id}</code>\n\n"
-        f"👥 <b>Total Teman Diajak:</b> <b>{ref_count} Orang</b>\n"
+        f"🆔 <b>ID Referal:</b> <code>{user_id}</code>\n\n"
+        f"👥 <b>Bestie yang diajak:</b> <b>{ref_count} Orang</b>\n"
         f"🎁 <b>Total Voucher Didapat:</b> <b>Rp{ref_reward:,}</b>\n\n"
-        f"<i>💡 <b>Cara ikutan:</b> Ajak temen kamu beli Teleprem di sini, suruh dia masukin ID Referal kamu di form belinya. Nanti temen kamu dapet potongan 1k dan kamu dapet voucher diskon 2k</i>"
+        f"<i>💡 <b>Cara ikutan:</b> Yuk ajak temen kamu buat jajan Teleprem di sini! "
+        f"Suruh mereka cantumin ID Referal kamu pas lagi ngisi form order. Nanti temenmu dapet potongan 1k, "
+        f"dan kamu dapet voucher diskon 2k yang bisa dipake buat order Manips atau Teleprem lho! Seru kan? 🎉</i>"
     )
     await update.message.reply_text(teks, parse_mode="HTML")
 
 async def cmd_addreferal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin memvalidasi referal, menambah poin ke pengajak, dan menggenerate voucher"""
+    """Admin memvalidasi referal, menambah poin, dan menggenerate voucher"""
     if update.effective_chat.id != ADMIN_GROUP_ID: return
 
-    # Format: /addreferal [ID_PENGAJAK] [ID_MEMBER_BARU] [NOMINAL_VOUCHER_REWARD]
     if len(context.args) < 3:
         return await update.message.reply_text(
             "⚠️ <b>Format Salah!</b>\nGunakan: <code>/addreferal [ID_PENGAJAK] [ID_YANG_DIAJAK] [NOMINAL_VOUCHER]</code>\n"
-            "Contoh: <code>/addreferal 111222 999888 15000</code>", 
+            "Contoh: <code>/addreferal 111222 999888 2000</code>", 
             parse_mode="HTML"
         )
 
@@ -1231,13 +1241,13 @@ async def cmd_addreferal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         return await update.message.reply_text("⚠️ ID dan Nominal harus berupa angka!")
 
-    status_msg = await update.message.reply_text("⏳ Sedang memvalidasi riwayat belanja member baru...")
+    status_msg = await update.message.reply_text("⏳ Bentar ya, lagi ngecek data orderan member barunya...")
 
-    # 1. VALIDASI: Pastikan member yang diajak adalah "Member Baru" (Maksimal hanya punya 1 riwayat transaksi sukses, yaitu transaksi yang barusan dibuat)
+    # 1. VALIDASI
     res_orders = await db(lambda: supabase.table("orders").select("id").eq("user_id", baru_id).eq("status", "success").execute())
     if res_orders.data and len(res_orders.data) > 1:
         return await status_msg.edit_text(
-            f"⚠️ <b>REFERAL DITOLAK:</b> Member yang diajak (ID: <code>{baru_id}</code>) sudah pernah jajan sebelumnya (memiliki {len(res_orders.data)} riwayat transaksi). Ini bukan pengguna baru!", 
+            f"⚠️ <b>REFERAL DITOLAK:</b> Member yang diajak (ID: <code>{baru_id}</code>) udah pernah jajan sebelumnya ({len(res_orders.data)} kali sukses). Ini bukan pengguna baru yaa!", 
             parse_mode="HTML"
         )
 
@@ -1253,14 +1263,13 @@ async def cmd_addreferal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref_count = curr_count + 1
         ref_reward = curr_reward + nominal_voucher
 
-    # Pastikan data user pengajak di-upsert agar tidak error jika dia belum pernah belanja
     await db(lambda: supabase.table("loyalty_stats").upsert({
         "user_id": pengajak_id,
         "referral_count": ref_count,
         "referral_reward_total": ref_reward
     }).execute())
 
-    # 3. BUAT VOUCHER UNTUK PENGAJAK
+    # 3. BUAT VOUCHER
     kode = generate_voucher_code()
     await db(lambda: supabase.table("vouchers").insert({
         "kode": kode,
@@ -1276,23 +1285,24 @@ async def cmd_addreferal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 Member Baru: <code>{baru_id}</code>\n"
         f"🎟 Kode Voucher: <code>{kode}</code>\n"
         f"💰 Nilai: Rp{nominal_voucher:,}\n\n"
-        f"<i>Notifikasi dan voucher sedang dikirimkan ke ID Pengajak...</i>",
+        f"<i>Notifikasi DM & voucher lagi meluncur ke ID Pengajak... 🚀</i>",
         parse_mode="HTML"
     )
 
     # 5. KIRIM NOTIFIKASI KE PENGAJAK
     try:
         pesan_pengajak = (
-            f"🎉 <b>YAY! ADA YANG PAKAI ID REFERAL KAMU!</b> 🎉\n\n"
-            f"Thanks ya udah ngajakin temen kamu jajan Teleprem di @APOLISE. "
-            f"Sebagai hadiahnya, ini voucher diskon khusus buat kamu:\n\n"
+            f"🎉 <b>YAY! ADA YANG PAKE KODE REFERAL KAMU NIH!</b> 🎉\n\n"
+            f"Makasih banyak yaa udah ngajakin temen kamu jajan Teleprem di @DECAVSTORE 🥰\n"
+            f"Sebagai tanda cinta dari admin, ini ada voucher diskon spesial buat kamu:\n\n"
             f"🎟 <b>Kode Voucher:</b> <code>{kode}</code>\n"
             f"💸 <b>Potongan Harga:</b> Rp{nominal_voucher:,}\n\n"
-            f"<i>Cek statisik referal kamu dengan mengetik /referal.</i>"
+            f"⚠️ <b>Catatan Penting:</b> Voucher ini cuma bisa kamu tukerin buat order <b>Manips</b> atau <b>Teleprem</b> aja ya kak!\n\n"
+            f"<i>Cek sisa voucher aktif kamu dengan ketik /profile, atau ketik /referal buat liat total temen yang udah kamu ajak.</i>"
         )
         await context.bot.send_message(chat_id=pengajak_id, text=pesan_pengajak, parse_mode="HTML")
     except Exception as e:
-        await update.message.reply_text("⚠️ <i>Gagal mengirim notifikasi DM ke pengajak (Mungkin bot diblokir). Tapi poin & voucher sudah ditambahkan.</i>", parse_mode="HTML")
+        await update.message.reply_text("⚠️ <i>Gagal mengirim notifikasi DM ke pengajak (Mungkin botnya belum di-start sama dia). Tapi data & vouchernya tetep aman tersimpan!</i>", parse_mode="HTML")
         
 async def cmd_tarik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id not in [ADMIN_GROUP_ID, LOG_GROUP_ID]: return
