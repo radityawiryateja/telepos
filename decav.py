@@ -205,7 +205,7 @@ def get_main_keyboard():
     """Fungsi untuk memanggil keyboard utama kapan saja"""
     keyboard = [
         [KeyboardButton("👤 Profile"), KeyboardButton("🎁 Referal")],
-        [KeyboardButton("🗣 Tanya (Admin)")]
+        [KeyboardButton("🗣 Tanya (Anonim)")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
     
@@ -282,7 +282,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if text_content == "🎁 referal":
         return await cmd_referal(update, context)
         
-    if text_content == "🗣 tanya (admin)":
+    if text_content == "🗣 tanya (anonim)":
         USER_STATE_CACHE[user.id] = "WAITING_MENFESS"
         return await update.message.reply_text(
             "📝 <b>Silakan kirim pesan kamu!</b>\n\n"
