@@ -282,7 +282,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if text_content == "🎁 referal":
         return await cmd_referal(update, context)
         
-    if text_content == "🗣 tanya admin":
+    if text_content == "🗣 tanya (admin)":
         USER_STATE_CACHE[user.id] = "WAITING_MENFESS"
         return await update.message.reply_text(
             "📝 <b>Silakan kirim pesan kamu!</b>\n\n"
