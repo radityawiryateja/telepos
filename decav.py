@@ -294,6 +294,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if text_content == "batal" and USER_STATE_CACHE.get(user.id):
         del USER_STATE_CACHE[user.id]
         return await update.message.reply_text("✅ Pengiriman tanya dibatalkan.")
+        reply_markup=get_main_keyboard()
     
     # --- LOGIKA PENGIRIMAN MENFESS ---
     if USER_STATE_CACHE.get(user.id) == "WAITING_MENFESS":
@@ -1028,7 +1029,7 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         teks += " └ <i>Cantumkan kode ini di form order ya!</i>\n"
         teks += " └ <i>Vouch diatas 4k hanya berlaku untuk teleprem</i>"
     
-    await update.message.reply_text(teks, parse_mode="HTML", disable_web_page_preview=True)
+    await update.message.reply_text(teks, parse_mode="HTML", disable_web_page_preview=True, reply_markup=get_main_keyboard())
     
 async def handle_cancelpay_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1502,7 +1503,7 @@ async def cmd_referal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Suruh mereka cantumin ID Referalnya kamu pas lagi ngisi form order. Nanti temenmu dapet potongan 1k, "
         f"dan kamu dapet voucher diskon 2k yang bisa dipake buat order Manips atau Teleprem lho!</i>"
     )
-    await update.message.reply_text(teks, parse_mode="HTML")
+    await update.message.reply_text(teks, parse_mode="HTML", reply_markup=get_main_keyboard())
 
 async def cmd_addreferal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin memvalidasi referal dengan proteksi akun bodong"""
