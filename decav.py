@@ -297,20 +297,38 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_main_keyboard()
     
     # --- LOGIKA PENGIRIMAN MENFESS ---
-    # --- LOGIKA PENGIRIMAN MENFESS ---
     if USER_STATE_CACHE.get(user.id) == "WAITING_MENFESS":
         # Hapus state agar tidak terus-terusan mode tanya
         del USER_STATE_CACHE[user.id]
 
-        status_msg = await update.message.reply_text("⏳ Sedang mengirim pesan kamu ke channel...")
+        status_msg = await update.message.reply_text("⏳ Sedang mengirim tanya kamu ke channel...")
 
         try:
-            # Gunakan copy_message agar support ALL MEDIA & FORMAT ASLI dipertahankan!
-            sent_msg = await context.bot.copy_message(
-                chat_id=CHANNEL_ID,
-                from_chat_id=user.id,
-                message_id=update.message.message_id
-            )
+            # 1. Atur penanda kamu di sini (bisa pakai HTML misal <b> atau <i>)
+            penanda = ".☘︎ ݁˖"
+
+            # 2. Cek apakah pesan berupa teks biasa atau media (foto/video/dokumen)
+            if update.message.text:
+                # Jika TEKS, kita gabung penanda dengan teks berformat asli (text_html)
+                pesan_baru = f"{penanda} {update.message.text_html}"
+                sent_msg = await context.bot.send_message(
+                    chat_id=CHANNEL_ID,
+                    text=pesan_baru,
+                    parse_mode="HTML"
+                )
+            else:
+                # Jika MEDIA, kita ambil caption aslinya (jika ada), lalu gabung dengan penanda
+                caption_asli = update.message.caption_html or ""
+                pesan_baru = f"{penanda} {caption_asli}" if caption_asli else penanda
+                
+                # Copy media aslinya, tapi timpa/override caption-nya dengan yang baru
+                sent_msg = await context.bot.copy_message(
+                    chat_id=CHANNEL_ID,
+                    from_chat_id=user.id,
+                    message_id=update.message.message_id,
+                    caption=pesan_baru,
+                    parse_mode="HTML"
+                )
 
             # Simpan ke database untuk tracking notif komentar nanti
             await db(lambda: supabase.table("menfess_map").insert({
@@ -325,7 +343,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             if LOG_GROUP_ID != 0:
                 log_text = (
                     f"📌 <b>LOG TANYA (MENFESS) BARU</b>\n"
-                    f"👤 Pengirim: {user_display}\n" # Ini akan menampilkan @username
+                    f"👤 Pengirim: {user_display}\n" 
                     f"🆔 ID: <code>{user.id}</code>\n"
                     f"🔗 <a href='{post_url}'>Lihat Postingan</a>"
                 )
