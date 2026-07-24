@@ -877,12 +877,9 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global _broadcast_running
     if update.effective_chat.id != ADMIN_GROUP_ID: return
     
-    # Cek apakah command /bc ini me-reply sebuah pesan
-    is_reply = bool(update.message.reply_to_message)
-    
-    # Jika tidak reply pesan DAN tidak ada teks di samping command, beri peringatan
-    if not is_reply and not context.args: 
-        return await update.message.reply_text("⚠️ <b>Format Salah!</b>\nKetik `/bc teks` ATAU balas/reply pesan yang mau di-broadcast dengan `/bc`", parse_mode="HTML")
+    # Memastikan admin me-reply sebuah pesan
+    if not update.message.reply_to_message: 
+        return await update.message.reply_text("⚠️ <b>Format Salah!</b>\nHarap balas/reply pesan yang ingin di-broadcast dengan perintah <code>/bc</code>", parse_mode="HTML")
         
     if _broadcast_running: return await update.message.reply_text("⚠️ Broadcast sedang berjalan.")
 
@@ -892,9 +889,6 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _broadcast_running = True
     sc, fc, failed_users = 0, 0, []
     status_msg = await update.message.reply_text(f"⏳ Memulai broadcast ke {len(user_list)} user...")
-    
-    # Ambil teks manual jika tidak mereply pesan
-    message_text = ' '.join(context.args) if not is_reply else ""
 
     try:
         for i in range(0, len(user_list), 10):
@@ -902,21 +896,13 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tasks = []
             
             for uid in batch:
-                if is_reply:
-                    # Kloning/Copy pesan yang direply (semua format: teks, spoiler, link, media dipertahankan utuh)
-                    tasks.append(context.bot.copy_message(
-                        chat_id=uid,
-                        from_chat_id=update.effective_chat.id,
-                        message_id=update.message.reply_to_message.message_id
-                    ))
-                else:
-                    # Kirim pesan teks manual biasa (menggunakan render HTML)
-                    tasks.append(context.bot.send_message(
-                        chat_id=uid, 
-                        text=message_text, 
-                        parse_mode="HTML",
-                        disable_web_page_preview=True
-                    ))
+                # Kloning/Copy pesan yang direply dan tambahkan keyboard utama di setiap pesan
+                tasks.append(context.bot.copy_message(
+                    chat_id=uid,
+                    from_chat_id=update.effective_chat.id,
+                    message_id=update.message.reply_to_message.message_id,
+                    reply_markup=get_main_keyboard()
+                ))
                     
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for idx, res in enumerate(results):
