@@ -302,7 +302,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Hapus state agar tidak terus-terusan mode tanya
         del USER_STATE_CACHE[user.id]
 
-        status_msg = await update.message.reply_text("⏳ Sedang mengirim tanya kamu ke channel...")
+        status_msg = await update.message.reply_text("⏳ Sedang mengirim pesan kamu ke channel...")
 
         try:
             # Gunakan copy_message agar support ALL MEDIA & FORMAT ASLI dipertahankan!
@@ -611,7 +611,7 @@ async def handle_discussion(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     
                     notif_text = (
                         f"📬 <b>{commenter}</b> telah memberikan komentar pada pesan anonim Anda.\n\n"
-                        f"<i>Anda dapat membalas atau memberikan reaksi (react) pada pesan ini untuk merespons secara anonim.</i>\n\n"
+                        f"<i>Reply/react pada pesan ini untuk merespons secara anonim.</i>\n\n"
                         f"<code>#ID:{msg.message_id}</code>"
                     )
                     # Kirim notifikasi ke DM sender
