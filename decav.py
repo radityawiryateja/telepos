@@ -597,6 +597,12 @@ async def handle_discussion(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     sender_uid = res.data[0]["sender_user_id"]
                     post_id = res.data[0]["post_id"]
                     
+                    # --- TAMBAHKAN 2 BARIS INI ---
+                    # Jika yang komen adalah sender itu sendiri, batalkan pengiriman notif
+                    if msg.from_user.id == sender_uid:
+                        return
+                    # -----------------------------
+                    
                     # Dapatkan nama/username pengomentar
                     commenter = f"@{msg.from_user.username}" if msg.from_user.username else html.escape(msg.from_user.first_name)
                     
@@ -604,11 +610,10 @@ async def handle_discussion(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     link = f"https://t.me/{CHANNEL_ID.replace('@', '')}/{post_id}?comment={msg.message_id}"
                     
                     notif_text = (
-                        f"📬 <b>{commenter}</b> berkomentar di pertanyaan kamu!\n\n"
-                        f"<i>Balas/react pada pesan ini untuk merespons secara anonim.</i>\n\n"
+                        f"📬 <b>{commenter}</b> telah memberikan komentar pada pesan anonim Anda.\n\n"
+                        f"<i>Anda dapat membalas atau memberikan reaksi (react) pada pesan ini untuk merespons secara anonim.</i>\n\n"
                         f"<code>#ID:{msg.message_id}</code>"
                     )
-                    
                     # Kirim notifikasi ke DM sender
                     notif_msg = await context.bot.send_message(
                         chat_id=sender_uid,
