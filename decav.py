@@ -297,6 +297,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_main_keyboard()
     
     # --- LOGIKA PENGIRIMAN MENFESS ---
+    # --- LOGIKA PENGIRIMAN MENFESS ---
     if USER_STATE_CACHE.get(user.id) == "WAITING_MENFESS":
         # Hapus state agar tidak terus-terusan mode tanya
         del USER_STATE_CACHE[user.id]
@@ -320,6 +321,20 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Buat link menuju postingan
             post_url = f"https://t.me/{CHANNEL_ID.replace('@', '')}/{sent_msg.message_id}"
             
+            # --- TAMBAHKAN LOG ADMIN DI SINI ---
+            if LOG_GROUP_ID != 0:
+                log_text = (
+                    f"📌 <b>LOG TANYA (MENFESS) BARU</b>\n"
+                    f"👤 Pengirim: {user_display}\n" # Ini akan menampilkan @username
+                    f"🆔 ID: <code>{user.id}</code>\n"
+                    f"🔗 <a href='{post_url}'>Lihat Postingan</a>"
+                )
+                try:
+                    await context.bot.send_message(chat_id=LOG_GROUP_ID, text=log_text, parse_mode="HTML", disable_web_page_preview=True)
+                except Exception as e:
+                    logger.error(f"Gagal kirim log menfess: {e}")
+            # -----------------------------------
+
             await status_msg.edit_text(
                 f"✅ <b>Pesan kamu telah dikirim ke channel.</b> 🪶\n\n"
                 f"Nanti kamu akan dapat notifikasi balasan!",
