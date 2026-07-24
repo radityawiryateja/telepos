@@ -205,7 +205,7 @@ def get_main_keyboard():
     """Fungsi untuk memanggil keyboard utama kapan saja"""
     keyboard = [
         [KeyboardButton("👤 Profile"), KeyboardButton("🎁 Referal")],
-        [KeyboardButton("🗣 Tanya (Anonim)")]
+        [KeyboardButton("🗣 Pesan (Anonim)")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
     
@@ -282,7 +282,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if text_content == "🎁 referal":
         return await cmd_referal(update, context)
         
-    if text_content == "🗣 tanya (anonim)":
+    if text_content == "🗣 pesan (anonim)":
         USER_STATE_CACHE[user.id] = "WAITING_MENFESS"
         return await update.message.reply_text(
             "📝 <b>Silakan kirim pesan kamu!</b>\n\n"
@@ -336,7 +336,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             # -----------------------------------
 
             await status_msg.edit_text(
-                f"✅ <b>Pesan kamu telah dikirim ke channel.</b> 🪶\n\n"
+                f"✅ <b>Pesan kamu telah dikirim ke channel.</b>\n"
                 f"Nanti kamu akan dapat notifikasi balasan!",
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Lihat Pesan Kamu", url=post_url)]])
@@ -605,7 +605,7 @@ async def handle_discussion(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     
                     notif_text = (
                         f"📬 <b>{commenter}</b> berkomentar di pertanyaan kamu!\n\n"
-                        f"<i>(Balas/reply pesan ini jika kamu ingin membalas komentarnya secara anonim)</i>\n\n"
+                        f"<i>Balas/react pada pesan ini untuk merespons secara anonim.</i>\n\n"
                         f"<code>#ID:{msg.message_id}</code>"
                     )
                     
